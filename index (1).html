@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Coletores</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+      --surface2: #f0f2f5;
+      --border: rgba(0,0,0,0.08);
+      --text: #1a1d23;
+      --muted: #6b7280;
+      --accent: #1d4ed8;
+      --success: #166534;
+      --warn: #b45309;
+      --danger: #b91c1c;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px; position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.3px; }
+    .logo svg { color: var(--accent); }
+    .dot-live { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+    .refresh-btn {
+      background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; gap: 6px; transition: all .15s;
+    }
+    .refresh-btn:hover { background: var(--surface2); color: var(--text); }
+    .refresh-btn:disabled { opacity: .4; cursor: default; }
+
+    .main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
+    .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; letter-spacing: -.4px; }
+    .page-sub { font-size: 14px; color: var(--muted); margin-bottom: 1.5rem; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap: 12px; margin-bottom: 1.5rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+    .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 6px; }
+    .kpi-value { font-size: 30px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+    .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .kpi.blue .kpi-value { color: var(--accent); }
+    .kpi.green .kpi-value { color: var(--success); }
+    .kpi.warn .kpi-value { color: var(--warn); }
+    .kpi.danger .kpi-value { color: var(--danger); }
+
+    .gauge-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem; }
+    .gauge-wrap { display: flex; align-items: center; gap: 1.5rem; margin-top: 10px; }
+    .gauge-bar-outer { flex: 1; height: 20px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .gauge-bar-inner { height: 100%; border-radius: 99px; background: #1d4ed8; transition: width 1s cubic-bezier(.4,0,.2,1); }
+    .gauge-pct { font-size: 26px; font-weight: 700; color: var(--accent); min-width: 64px; text-align: right; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
+    @media(max-width:900px){ .grid2 { grid-template-columns: 1fr; } }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+    .card-title { font-size: 14px; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; color: var(--text); }
+    .card-title svg { color: var(--muted); flex-shrink: 0; }
+
+    .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem; }
+    .table-header { padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+    .table-header-title { font-size: 14px; font-weight: 600; }
+    .search-input { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 13px; background: var(--surface2); color: var(--text); outline: none; width: 220px; }
+    .search-input:focus { border-color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 9px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); background: var(--surface2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f9fafb; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .b-green  { background: #dcfce7; color: #166534; }
+    .b-blue   { background: #dbeafe; color: #1e40af; }
+    .b-amber  { background: #fef3c7; color: #92400e; }
+    .b-red    { background: #fee2e2; color: #991b1b; }
+    .b-gray   { background: #f3f4f6; color: #374151; }
+    .b-purple { background: #ede9fe; color: #5b21b6; }
+
+    .filters { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .filter-btn { padding: 4px 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; cursor: pointer; transition: all .15s; color: var(--muted); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+
+    .turno-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+    .turno-tab { padding: 3px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; cursor: pointer; color: var(--muted); transition: all .15s; }
+    .turno-tab.active { background: #0f6e56; border-color: #0f6e56; color: white; font-weight: 600; }
+
+    .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 3rem; color: var(--muted); font-size: 14px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg { background: #fee2e2; color: #991b1b; padding: 1rem 1.25rem; border-radius: var(--radius); font-size: 14px; margin-bottom: 1rem; }
+    .empty { padding: 2rem; text-align: center; color: var(--muted); font-size: 14px; }
+
+    .tempo-chip { font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .user-cell { display: flex; align-items: center; gap: 7px; }
+    .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="7" height="9" rx="1"/><rect x="9" y="12" width="6" height="9" rx="1"/>
+      <rect x="15" y="3" width="7" height="6" rx="1"/><rect x="15" y="12" width="7" height="9" rx="1"/>
+    </svg>
+    Dashboard Coletores
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);">
+      <div class="dot-live"></div>
+      <span id="updated-at">Carregando...</span>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+        <path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>
+      </svg>
+      Atualizar
+    </button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="page-title">Controle de Uso de Coletores</div>
+  <div class="page-sub" id="date-range">—</div>
+
+  <div id="error-container"></div>
+
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="loading"><div class="spinner"></div> Buscando dados da planilha...</div>
+  </div>
+
+  <div class="gauge-card" id="gauge-card"></div>
+
+  <div class="grid2">
+    <div class="chart-card">
+      <div class="card-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Uso por Setor
+      </div>
+      <div style="position:relative;height:260px"><canvas id="chartSetor" role="img" aria-label="Uso por setor">Registros por setor.</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>
+        Top 10 Usuários (retiradas)
+      </div>
+      <div id="chartUserWrap" style="position:relative;height:280px"><canvas id="chartUser" role="img" aria-label="Top usuários">Retiradas por usuário.</canvas></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="chart-card">
+      <div class="card-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Movimentações por Dia (últimos 30 dias)
+      </div>
+      <div style="position:relative;height:220px"><canvas id="chartDia" role="img" aria-label="Movimentações diárias">Movimentações por dia.</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Estado na Entrega do Equipamento
+      </div>
+      <div style="position:relative;height:220px"><canvas id="chartEstado" role="img" aria-label="Estado dos equipamentos">Estado dos equipamentos.</canvas></div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-bottom:1.5rem;">
+    <div class="chart-card">
+      <div class="card-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Uso por Turno
+      </div>
+      <div style="position:relative;height:220px"><canvas id="chartTurno" role="img" aria-label="Uso por turno">Registros por turno.</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="6" height="13" rx="1"/><rect x="9" y="4" width="6" height="16" rx="1"/><rect x="16" y="2" width="6" height="18" rx="1"/></svg>
+        Tipo de Coletor
+      </div>
+      <div style="position:relative;height:220px"><canvas id="chartTipo" role="img" aria-label="Tipos de coletor">Registros por tipo de coletor.</canvas></div>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-header-title">Registros de Entregas e Devoluções</div>
+      <input class="search-input" id="search" type="text" placeholder="Buscar nome, setor, coletor…" oninput="currentPage=1;renderTable()">
+    </div>
+
+    <div class="filters" id="filters-setor">
+      <button class="filter-btn active" data-val="todos" onclick="setSetor(this)">Todos os setores</button>
+    </div>
+
+    <div class="turno-tabs" id="filters-turno">
+      <button class="turno-tab active" data-val="todos" onclick="setTurno(this)">Todos os turnos</button>
+    </div>
+
+    <div id="table-container"><div class="loading"><div class="spinner"></div></div></div>
+    <div id="pagination" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQIbk4cMEQdZ1Hkq3rxWNVS_8ucDnh4ngPCigF_DHTAoTlBPvnTGeTTqz63Ekazy2sFYuAZxkQZ6yx4/pub?gid=0&single=true&output=tsv';
+
+const COL = {
+  nick:          'NICK_NAME',
+  coletor:       'Nº COLETOR',
+  matricula:     'MATRÍCULA',
+  nome:          'NOME',
+  setor:         'SETOR',
+  turno:         'TURNO',
+  tipo:          'TIPO_COLETOR',
+  dataLanc:      'DATA_LANÇAMENTO',
+  dataInicial:   'DATA_INICAL',
+  dataFinal:     'DATA_FINAL',
+  tempo:         'TEMPO',
+  status:        'STATUS_ENTREGA',
+  estadoRetirada:'ESTADO_RETIRADA_EQUIPA',
+  estadoEntrega: 'ESTADO_ENTREGA_EQUIPA',
+};
+
+const TOTAL_COLETORES = 30; // ← ajuste para o total real do seu inventário
+
+// Valores de STATUS_ENTREGA que indicam coletor "em uso":
+const EM_USO_VALUES    = ['entregue','retirado','em uso','saída','saida','pendente'];
+const DEVOLVIDO_VALUES = ['devolvido','retornado','entrada','concluído','concluido'];
+// ────────────────────────────────────────────────────────────
+
+let allData = [];
+let currentSetor = 'todos';
+let currentTurno = 'todos';
+let currentPage  = 1;
+const PAGE_SIZE  = 15;
+let charts = {};
+
+function nrm(v){ return (v||'').trim().toLowerCase(); }
+
+function parseDate(s){
+  if(!s) return null;
+  let d = new Date(s);
+  if(!isNaN(d)) return d;
+  let m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(\d{1,2})?:?(\d{2})?/);
+  if(m) return new Date(`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}T${(m[4]||'00').padStart(2,'0')}:${m[5]||'00'}:00`);
+  return null;
+}
+
+function fmtDate(s){
+  const d = parseDate(s);
+  return d ? d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : (s||'—');
+}
+
+function fmtDateOnly(s){
+  const d = parseDate(s);
+  return d ? d.toLocaleDateString('pt-BR') : (s||'—');
+}
+
+function initials(name){
+  if(!name) return '?';
+  const parts = name.trim().split(' ').filter(Boolean);
+  if(parts.length===1) return parts[0][0].toUpperCase();
+  return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
+}
+
+function avatarColor(name){
+  const colors=[['#dbeafe','#1e40af'],['#dcfce7','#166534'],['#ede9fe','#5b21b6'],['#fef3c7','#92400e'],['#fee2e2','#991b1b'],['#cffafe','#155e75']];
+  let h=0; for(const c of (name||'')) h=(h*31+c.charCodeAt(0))&0xfffff;
+  return colors[h%colors.length];
+}
+
+function statusBadge(v){
+  const s=nrm(v);
+  if(EM_USO_VALUES.some(x=>s.includes(x)))    return `<span class="badge b-blue">${v||'—'}</span>`;
+  if(DEVOLVIDO_VALUES.some(x=>s.includes(x))) return `<span class="badge b-green">${v||'—'}</span>`;
+  return `<span class="badge b-gray">${v||'—'}</span>`;
+}
+
+function estadoBadge(v){
+  const s=nrm(v);
+  if(s.includes('bom')||s.includes('ok')||s.includes('ótimo')||s.includes('otimo')) return `<span class="badge b-green">${v||'—'}</span>`;
+  if(s.includes('regular')||s.includes('médio')||s.includes('medio'))               return `<span class="badge b-amber">${v||'—'}</span>`;
+  if(s.includes('ruim')||s.includes('danif')||s.includes('defeito')||s.includes('avariado')) return `<span class="badge b-red">${v||'—'}</span>`;
+  if(!v||v.trim()==='') return `<span class="badge b-gray">—</span>`;
+  return `<span class="badge b-gray">${v}</span>`;
+}
+
+function getEmUso(data){
+  const byCol={};
+  data.forEach(r=>{
+    const id=r[COL.coletor]; if(!id) return;
+    const d=parseDate(r[COL.dataLanc])||parseDate(r[COL.dataInicial])||new Date(0);
+    if(!byCol[id]||d>byCol[id].date) byCol[id]={row:r,date:d};
+  });
+  return Object.values(byCol).filter(v=>EM_USO_VALUES.some(x=>nrm(v.row[COL.status]).includes(x))).length;
+}
+
+function getVisible(){
+  return currentSetor==='todos'&&currentTurno==='todos' ? allData
+    : allData.filter(r=>
+        (currentSetor==='todos'||r[COL.setor]===currentSetor)&&
+        (currentTurno==='todos'||r[COL.turno]===currentTurno)
+      );
+}
+
+// ── LOAD ────────────────────────────────────────────────────
+async function loadData(){
+  document.getElementById('updated-at').textContent='Atualizando...';
+  document.getElementById('error-container').innerHTML='';
+  const btn=document.getElementById('refresh-btn'); btn.disabled=true;
+  try{
+    const res=await fetch(SHEET_URL+'&nc='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const txt=await res.text();
+    const rows=txt.trim().split('\n').map(r=>r.split('\t'));
+    if(rows.length<2) throw new Error('Planilha vazia');
+    const headers=rows[0].map(h=>h.trim());
+    allData=rows.slice(1)
+      .map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o; })
+      .filter(r=>r[COL.nome]||r[COL.coletor]||r[COL.nick]);
+    document.getElementById('updated-at').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    renderAll();
+  }catch(e){
+    document.getElementById('updated-at').textContent='Erro ao carregar';
+    document.getElementById('error-container').innerHTML=`<div class="error-msg">⚠️ Erro ao carregar: ${e.message}. Verifique se a planilha está publicada como pública (Arquivo → Compartilhar → Publicar na web → TSV).</div>`;
+  }finally{ btn.disabled=false; }
+}
+
+function renderAll(){
+  buildFilters();
+  renderKPIs();
+  renderGauge();
+  renderChartSetor();
+  renderChartUser();
+  renderChartDia();
+  renderChartEstado();
+  renderChartTurno();
+  renderChartTipo();
+  currentPage=1;
+  renderTable();
+  renderDateRange();
+}
+
+function renderDateRange(){
+  const dates=allData.map(r=>parseDate(r[COL.dataLanc])||parseDate(r[COL.dataInicial])).filter(Boolean).sort((a,b)=>a-b);
+  if(dates.length>=2){
+    document.getElementById('date-range').textContent=`Período: ${dates[0].toLocaleDateString('pt-BR')} – ${dates[dates.length-1].toLocaleDateString('pt-BR')} · ${allData.length} registros`;
+  } else {
+    document.getElementById('date-range').textContent=`${allData.length} registros`;
+  }
+}
+
+function buildFilters(){
+  const setores=[...new Set(allData.map(r=>r[COL.setor]).filter(Boolean))].sort();
+  const turnos=[...new Set(allData.map(r=>r[COL.turno]).filter(Boolean))].sort();
+  document.getElementById('filters-setor').innerHTML=
+    `<button class="filter-btn ${currentSetor==='todos'?'active':''}" data-val="todos" onclick="setSetor(this)">Todos</button>`+
+    setores.map(s=>`<button class="filter-btn ${currentSetor===s?'active':''}" data-val="${s}" onclick="setSetor(this)">${s}</button>`).join('');
+  document.getElementById('filters-turno').innerHTML=
+    `<button class="turno-tab ${currentTurno==='todos'?'active':''}" data-val="todos" onclick="setTurno(this)">Todos os turnos</button>`+
+    turnos.map(t=>`<button class="turno-tab ${currentTurno===t?'active':''}" data-val="${t}" onclick="setTurno(this)">${t}</button>`).join('');
+}
+
+function setSetor(btn){ currentSetor=btn.dataset.val; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); currentPage=1; refreshViews(); }
+function setTurno(btn){ currentTurno=btn.dataset.val; document.querySelectorAll('.turno-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); currentPage=1; refreshViews(); }
+
+function refreshViews(){ renderKPIs(); renderGauge(); renderChartUser(); renderChartDia(); renderChartEstado(); renderChartTurno(); renderChartTipo(); renderTable(); }
+
+function renderKPIs(){
+  const data=getVisible();
+  const emUso=getEmUso(data);
+  const devolv=data.filter(r=>DEVOLVIDO_VALUES.some(x=>nrm(r[COL.status]).includes(x))).length;
+  const usuarios=new Set(data.map(r=>r[COL.nome]).filter(Boolean)).size;
+  const hoje=new Date().toDateString();
+  const movHoje=data.filter(r=>{ const d=parseDate(r[COL.dataLanc])||parseDate(r[COL.dataInicial]); return d&&d.toDateString()===hoje; }).length;
+  const pend=data.filter(r=>nrm(r[COL.status]).includes('pend')).length;
+  document.getElementById('kpi-grid').innerHTML=`
+    <div class="kpi blue"><div class="kpi-label">Total de Registros</div><div class="kpi-value">${data.length}</div><div class="kpi-sub">movimentações</div></div>
+    <div class="kpi green"><div class="kpi-label">Coletores em Uso</div><div class="kpi-value">${emUso}</div><div class="kpi-sub">de ${TOTAL_COLETORES} no inventário</div></div>
+    <div class="kpi"><div class="kpi-label">Devoluções</div><div class="kpi-value">${devolv}</div><div class="kpi-sub">retornos registrados</div></div>
+    <div class="kpi"><div class="kpi-label">Colaboradores</div><div class="kpi-value">${usuarios}</div><div class="kpi-sub">usuários distintos</div></div>
+    <div class="kpi warn"><div class="kpi-label">Hoje</div><div class="kpi-value">${movHoje}</div><div class="kpi-sub">movimentações hoje</div></div>
+    <div class="kpi ${pend>0?'danger':''}"><div class="kpi-label">Pendentes</div><div class="kpi-value">${pend}</div><div class="kpi-sub">entregas pendentes</div></div>
+  `;
+}
+
+function renderGauge(){
+  const data=getVisible();
+  const emUso=getEmUso(data);
+  const pct=Math.round((emUso/TOTAL_COLETORES)*100);
+  const disp=TOTAL_COLETORES-emUso;
+  document.getElementById('gauge-card').innerHTML=`
+    <div class="card-title" style="margin-bottom:8px;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      Taxa de Ocupação — ${emUso} em uso · ${disp} disponíveis · total ${TOTAL_COLETORES}
+    </div>
+    <div class="gauge-wrap">
+      <span style="font-size:13px;color:var(--muted);min-width:100px">${disp} livres</span>
+      <div class="gauge-bar-outer"><div class="gauge-bar-inner" style="width:${pct}%"></div></div>
+      <div class="gauge-pct">${pct}%</div>
+    </div>
+  `;
+}
+
+const PALETTE=['#1d4ed8','#0f6e56','#b45309','#7c3aed','#be123c','#0891b2','#4d7c0f','#92400e','#475569','#0e7490'];
+
+function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+function renderChartSetor(){
+  dc('setor');
+  const cnt={};
+  allData.forEach(r=>{ const s=r[COL.setor]||'—'; cnt[s]=(cnt[s]||0)+1; });
+  const labs=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+  charts['setor']=new Chart(document.getElementById('chartSetor'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[{ label:'Registros', data:labs.map(l=>cnt[l]), backgroundColor:PALETTE.map(c=>c+'bb'), borderColor:PALETTE, borderWidth:1.5 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{font:{size:11}}}, y:{beginAtZero:true,ticks:{font:{size:11},precision:0}} } }
+  });
+}
+
+function renderChartUser(){
+  dc('user');
+  const data=getVisible();
+  const cnt={};
+  data.forEach(r=>{ const u=r[COL.nome]||r[COL.nick]||'—'; cnt[u]=(cnt[u]||0)+1; });
+  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const labs=sorted.map(x=>x[0].split(' ')[0]);
+  const vals=sorted.map(x=>x[1]);
+  const h=Math.max(260,labs.length*36+70);
+  document.getElementById('chartUserWrap').style.height=h+'px';
+  charts['user']=new Chart(document.getElementById('chartUser'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[{ label:'Retiradas', data:vals, backgroundColor:'#1d4ed8bb', borderColor:'#1d4ed8', borderWidth:1.5 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{beginAtZero:true,ticks:{font:{size:11},precision:0}}, y:{ticks:{font:{size:11}}} } }
+  });
+}
+
+function renderChartDia(){
+  dc('dia');
+  const data=getVisible();
+  const cnt={};
+  data.forEach(r=>{
+    const d=parseDate(r[COL.dataLanc])||parseDate(r[COL.dataInicial]); if(!d) return;
+    const k=d.toLocaleDateString('pt-BR'); cnt[k]=(cnt[k]||0)+1;
+  });
+  const sorted=Object.entries(cnt).sort((a,b)=>{
+    const p=s=>{ const[dd,mm,yy]=s.split('/').map(Number); return new Date(yy,mm-1,dd); };
+    return p(a[0])-p(b[0]);
+  }).slice(-30);
+  charts['dia']=new Chart(document.getElementById('chartDia'),{
+    type:'line',
+    data:{ labels:sorted.map(x=>x[0]), datasets:[{ label:'Movimentações', data:sorted.map(x=>x[1]), borderColor:'#1d4ed8', backgroundColor:'#1d4ed818', tension:.4, fill:true, pointRadius:3 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:10}}, y:{beginAtZero:true,ticks:{font:{size:11},precision:0}} } }
+  });
+}
+
+function renderChartEstado(){
+  dc('estado');
+  const data=getVisible();
+  const cnt={};
+  data.forEach(r=>{ const e=r[COL.estadoEntrega]||r[COL.estadoRetirada]||'Não informado'; cnt[e]=(cnt[e]||0)+1; });
+  const labs=Object.keys(cnt); const vals=labs.map(l=>cnt[l]);
+  charts['estado']=new Chart(document.getElementById('chartEstado'),{
+    type:'doughnut',
+    data:{ labels:labs, datasets:[{ data:vals, backgroundColor:PALETTE.slice(0,labs.length).map(c=>c+'cc'), borderColor:PALETTE.slice(0,labs.length), borderWidth:1.5 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{font:{size:11},padding:10,boxWidth:12} } } }
+  });
+}
+
+function renderChartTurno(){
+  dc('turno');
+  const data=getVisible();
+  const cnt={};
+  data.forEach(r=>{ const t=r[COL.turno]||'—'; cnt[t]=(cnt[t]||0)+1; });
+  const labs=Object.keys(cnt).sort(); const vals=labs.map(l=>cnt[l]);
+  charts['turno']=new Chart(document.getElementById('chartTurno'),{
+    type:'doughnut',
+    data:{ labels:labs, datasets:[{ data:vals, backgroundColor:['#1d4ed8cc','#0f6e56cc','#b45309cc','#7c3aedcc'], borderColor:['#1d4ed8','#0f6e56','#b45309','#7c3aed'], borderWidth:1.5 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{font:{size:11},padding:10,boxWidth:12} } } }
+  });
+}
+
+function renderChartTipo(){
+  dc('tipo');
+  const data=getVisible();
+  const cnt={};
+  data.forEach(r=>{ const t=r[COL.tipo]||'—'; cnt[t]=(cnt[t]||0)+1; });
+  const labs=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]); const vals=labs.map(l=>cnt[l]);
+  charts['tipo']=new Chart(document.getElementById('chartTipo'),{
+    type:'bar',
+    data:{ labels:labs, datasets:[{ label:'Registros', data:vals, backgroundColor:PALETTE.map(c=>c+'bb'), borderColor:PALETTE, borderWidth:1.5 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{font:{size:11}}}, y:{beginAtZero:true,ticks:{font:{size:11},precision:0}} } }
+  });
+}
+
+function renderTable(){
+  const q=nrm(document.getElementById('search').value||'');
+  let rows=getVisible();
+  if(q) rows=rows.filter(r=>[COL.nome,COL.nick,COL.setor,COL.coletor,COL.status,COL.turno,COL.tipo,COL.matricula].some(k=>nrm(r[k]).includes(q)));
+  rows=[...rows].sort((a,b)=>{
+    const da=parseDate(a[COL.dataLanc])||parseDate(a[COL.dataInicial])||new Date(0);
+    const db=parseDate(b[COL.dataLanc])||parseDate(b[COL.dataInicial])||new Date(0);
+    return db-da;
+  });
+  const total=rows.length;
+  const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  if(currentPage>pages) currentPage=pages;
+  const slice=rows.slice((currentPage-1)*PAGE_SIZE,currentPage*PAGE_SIZE);
+
+  if(!slice.length){
+    document.getElementById('table-container').innerHTML='<div class="empty">Nenhum registro encontrado.</div>';
+    document.getElementById('pagination').innerHTML='';
+    return;
+  }
+
+  document.getElementById('table-container').innerHTML=`
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr>
+        <th>Data Lançamento</th>
+        <th>Usuário</th>
+        <th>Matrícula</th>
+        <th>Setor</th>
+        <th>Turno</th>
+        <th>Coletor</th>
+        <th>Tipo</th>
+        <th>Início</th>
+        <th>Fim</th>
+        <th>Tempo</th>
+        <th>Status</th>
+        <th>Estado Retirada</th>
+        <th>Estado Entrega</th>
+      </tr></thead>
+      <tbody>
+      ${slice.map(r=>{
+        const [bg,fg]=avatarColor(r[COL.nome]||r[COL.nick]);
+        const ini=r[COL.nick]||initials(r[COL.nome]);
+        return `<tr>
+          <td style="white-space:nowrap;font-size:12px;color:var(--muted)">${fmtDate(r[COL.dataLanc])}</td>
+          <td>
+            <div class="user-cell">
+              <div class="avatar" style="background:${bg};color:${fg}">${ini.substring(0,2)}</div>
+              <div>
+                <div style="font-weight:500;font-size:13px">${r[COL.nome]||r[COL.nick]||'—'}</div>
+                ${r[COL.nick]&&r[COL.nome]?`<div style="font-size:11px;color:var(--muted)">${r[COL.nick]}</div>`:''}
+              </div>
+            </div>
+          </td>
+          <td style="font-size:12px;color:var(--muted)">${r[COL.matricula]||'—'}</td>
+          <td>${r[COL.setor]||'—'}</td>
+          <td><span class="badge b-purple">${r[COL.turno]||'—'}</span></td>
+          <td><strong>${r[COL.coletor]||'—'}</strong></td>
+          <td style="font-size:12px">${r[COL.tipo]||'—'}</td>
+          <td style="white-space:nowrap;font-size:12px">${fmtDateOnly(r[COL.dataInicial])}</td>
+          <td style="white-space:nowrap;font-size:12px">${fmtDateOnly(r[COL.dataFinal])}</td>
+          <td style="font-size:12px;font-weight:600">${r[COL.tempo]||'—'}</td>
+          <td>${statusBadge(r[COL.status])}</td>
+          <td>${estadoBadge(r[COL.estadoRetirada])}</td>
+          <td>${estadoBadge(r[COL.estadoEntrega])}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>`;
+
+  document.getElementById('pagination').innerHTML=`
+    <span>${total} registros · página ${currentPage} de ${pages}</span>
+    <div style="display:flex;gap:6px">
+      <button class="refresh-btn" onclick="if(currentPage>1){currentPage--;renderTable();}" ${currentPage===1?'disabled':''}>← Anterior</button>
+      <button class="refresh-btn" onclick="if(currentPage<${pages}){currentPage++;renderTable();}" ${currentPage===pages?'disabled':''}>Próxima →</button>
+    </div>`;
+}
+
+// Auto-refresh a cada 5 minutos
+setInterval(loadData, 5*60*1000);
+loadData();
+</script>
+</body>
+</html>
